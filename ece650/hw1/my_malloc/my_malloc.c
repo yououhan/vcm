@@ -8,10 +8,18 @@ void addToLinkedList(Node * prev, Node * toBeAdded) {
   Node * temp = prev->next;
   prev->next = toBeAdded;
   toBeAdded->next = temp;
+  toBeAdded->prev = prev;
+  if (temp != NULL) {
+    temp->prev = toBeAdded;
+  }
 }
 
-void deleteFromLinkedList(Node * prev, Node * toBeDeleted) {
+void deleteFromLinkedList(Node * toBeDeleted) {
+  Node * prev = toBeDeleted->prev;
   prev->next = toBeDeleted->next;
+  if (toBeDeleted->next != NULL) {
+    toBeDeleted->next->prev = prev;
+  }
 }
 
 void initNode(Node * node, Node * prev, size_t size) {
@@ -23,10 +31,10 @@ void initNode(Node * node, Node * prev, size_t size) {
 void initListHead() {
   allocatedListHead= sbrk(sizeof(*allocatedListHead));
   allocatedListHead->next = NULL;
+  allocatedListHead->prev = NULL;  
   heapTop = allocatedListHead + 1;//exclusive
   allocatedListHead->start_address = heapTop;
   allocatedListHead->end_address = heapTop;
-
 }
 //First Fit malloc/free
 void *ff_malloc(size_t size) {
@@ -49,27 +57,22 @@ void *ff_malloc(size_t size) {
       newAllocatedNode = heapTop - size - sizeof(*curr);
     } else {
       size_t increment = size + sizeof(*curr) - ((size_t)heapTop - (size_t)prev->end_address);
-      newAllocatedNode = sbrk(increment);
-      heapTop = (void *)((size_t)newAllocatedNode + increment);
+      heapTop = (void *)((size_t)sbrk(increment) + increment);
+      newAllocatedNode = (Node *)((size_t)heapTop - size - sizeof(*curr));
       //printf("heapTop = %p\n", heapTop);
     }
   }
   initNode(newAllocatedNode, prev, size);
-  //printf("heapTop = %p\n", heapTop);  
-  //printf("start_address = %p\n", (void *)newAllocatedNode->start_address);
+  //  printf("heapTop = %p\n", heapTop);  
+  printf("allocating = %p\n", (void *)newAllocatedNode->start_address);
   return (void *)(newAllocatedNode->start_address);
 }
 
 void ff_free(void *ptr) {
-  Node * curr = allocatedListHead->next; 
-  Node * prev = allocatedListHead;
-  while (curr != NULL) {
-    if (curr->start_address == ptr) {
-      deleteFromLinkedList(prev, curr);
-      break;
-    }
-    prev = curr;
-    curr = curr->next;
+  if (ptr != NULL) {
+    printf("deleting %p\n", ptr);
+    Node * toBeDeleted = (Node *)((size_t)ptr - (size_t)sizeof(Node));
+    deleteFromLinkedList(toBeDeleted);
   }
 }
 
@@ -116,7 +119,7 @@ unsigned long get_data_segment_size() {
   Node * curr = allocatedListHead;
   unsigned long dataSize = 0;
   while (curr != NULL) {
-    dataSize += curr->start_address - curr->end_address;
+    dataSize += curr->end_address - curr->start_address;
     curr = curr->next;
   }
   return dataSize;

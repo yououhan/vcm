@@ -1,5 +1,5 @@
-CC=gcc -ggdb3
-CFLAGS= -fPIC
+CC=gcc
+CFLAGS=-ggdb3 -fPIC
 DEPS=my_malloc.h
 
 all: lib
