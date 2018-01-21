@@ -15,8 +15,8 @@ void deleteFromLinkedList(Node * prev, Node * toBeDeleted) {
 }
 
 void initNode(Node * node, Node * prev, size_t size) {
-  node->start_address = (void *)((size_t)node - (size_t)sizeof(*node)*8);
-  node->end_address = (void *)((size_t)node->start_address - size*8);
+  node->start_address = (void *)((size_t)node + (size_t)sizeof(*node));
+  node->end_address = (void *)((size_t)node->start_address + size);
   addToLinkedList(prev, node);
 }
 
@@ -25,32 +25,36 @@ void *ff_malloc(size_t size) {
   if (allocatedListHead == NULL) {
     allocatedListHead= sbrk(sizeof(*allocatedListHead));
     allocatedListHead->next = NULL;
-    heapTop = allocatedListHead;
-    printf("heapTop = %p", heapTop);
+    heapTop = allocatedListHead + 1;//exclusive
+    allocatedListHead->start_address = heapTop;
+    allocatedListHead->end_address = heapTop;
+    //printf("heapTop = %p\n", heapTop);
   }
   Node * curr = allocatedListHead->next; 
   Node * prev = allocatedListHead;
   Node * temp = NULL;
   while (curr != NULL) {
-    if (((size_t)curr->end_address - (size_t)prev) >= 8 * (size + sizeof(*curr))) {
-      temp = (Node *)(curr->end_address - 8 * sizeof(*curr));
+    if (((size_t)curr - (size_t)prev->end_address) >= (size + sizeof(*curr))) {
+      temp = (Node *)((size_t)curr - size - sizeof(*curr));
       break;
     }
     prev = curr;
     curr = curr->next;      
   }
   if (temp == NULL) {
-    if (((size_t)heapTop - (size_t)prev) >= (size + sizeof(*curr)) * 8) {
-      temp = heapTop;
+    if (((size_t)heapTop - (size_t)prev->end_address) >= (size + sizeof(*curr))) {
+      temp = heapTop - size - sizeof(*curr);
     } else {
-      temp = sbrk(size + sizeof(*curr) - ((size_t)heapTop - (size_t)prev)/8);
-      heapTop = temp;
-      printf("heapTop = %p", heapTop);
+      size_t increment = size + sizeof(*curr) - ((size_t)heapTop - (size_t)prev->end_address);
+      temp = sbrk(increment);
+      heapTop = (void *)((size_t)temp + increment);
+      //printf("heapTop = %p\n", heapTop);
     }
   }
   initNode(temp, prev, size);
-  printf("start_address = %p", (void *)temp->start_address);
-  return (void *)(temp->end_address);
+  printf("heapTop = %p\n", heapTop);  
+  printf("start_address = %p\n", (void *)temp->start_address);
+  return (void *)(temp->start_address);
 }
 
 void ff_free(void *ptr) {

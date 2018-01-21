@@ -122,7 +122,7 @@ int main(int argc, char *argv[])
     sum += array[8][i];
   } //for i
 
-  size = 32;
+  size = 100000;
   expected_sum += size * size;
   array[9] = (int *)MALLOC(size * sizeof(int));
   for (i=0; i < size; i++) {
