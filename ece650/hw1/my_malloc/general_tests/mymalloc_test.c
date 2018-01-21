@@ -11,8 +11,6 @@
 #define FREE(p)    bf_free(p)
 #endif
 
-extern Node * allocatedListHead;
-extern void * heapTop;
 int main(int argc, char *argv[])
 {
   const unsigned NUM_ITEMS = 10;
@@ -21,8 +19,6 @@ int main(int argc, char *argv[])
   int sum = 0;
   int expected_sum = 0;
   int *array[NUM_ITEMS];
-  allocatedListHead = NULL;
-  heapTop = NULL;
   size = 4;
   expected_sum += size * size;
   array[0] = (int *)MALLOC(size * sizeof(int));

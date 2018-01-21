@@ -2,6 +2,7 @@
 #define __MY_MALLOC_H__
 #include <stdlib.h>
 #include <stdio.h>
+#include <stdint.h>
 #include <sys/time.h>
 //First Fit malloc/free
 void *ff_malloc(size_t size);
