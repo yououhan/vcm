@@ -62,15 +62,18 @@ void *ff_malloc(size_t size) {
       //printf("heapTop = %p\n", heapTop);
     }
   }
+  //  if (allocatedListHead->next != NULL)printf("allocatedListHead = %p, heapTop = %p, itself = %p, prev = %p, next = %p\n",allocatedListHead, heapTop, allocatedListHead->next, allocatedListHead->next->prev, allocatedListHead->next->next);
+  //printf("newAllocatedNode = %p, heapTop = %p, itself = %p, prev = %p, next = %p\n",newAllocatedNode, heapTop, prev, prev->prev, prev->next);
   initNode(newAllocatedNode, prev, size);
+  //  printf("prev = %p, next = %p\n", newAllocatedNode->prev, newAllocatedNode->next);
   //  printf("heapTop = %p\n", heapTop);  
-  printf("allocating = %p\n", (void *)newAllocatedNode->start_address);
+  //  printf("allocating = %p\n", (void *)newAllocatedNode->start_address);
   return (void *)(newAllocatedNode->start_address);
 }
 
 void ff_free(void *ptr) {
   if (ptr != NULL) {
-    printf("deleting %p\n", ptr);
+    //printf("deleting %p\n", ptr);
     Node * toBeDeleted = (Node *)((size_t)ptr - (size_t)sizeof(Node));
     deleteFromLinkedList(toBeDeleted);
   }
