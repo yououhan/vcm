@@ -23,7 +23,7 @@ void deleteFromLinkedList(Node * toBeDeleted) {
 }
 
 void initNode(Node * node, Node * prev, size_t size) {
-  node->start_address = (void *)((size_t)node + (size_t)sizeof(*node));
+  node->start_address = (void *)((size_t)node + (size_t)sizeof(Node));
   node->end_address = (void *)((size_t)node->start_address + size);
   addToLinkedList(prev, node);
 }
@@ -36,6 +36,19 @@ void initListHead() {
   allocatedListHead->start_address = heapTop;
   allocatedListHead->end_address = heapTop;
 }
+
+Node * initNewAllocatedNode(Node * prev, size_t size) {
+  Node * newAllocatedNode = NULL;
+  if (((size_t)heapTop - (size_t)prev->end_address) >= (size + sizeof(Node))) {
+    newAllocatedNode = heapTop - size - sizeof(Node);
+  } else {
+    size_t increment = size + sizeof(Node) - ((size_t)heapTop - (size_t)prev->end_address);
+    heapTop = (void *)((size_t)sbrk(increment) + increment);
+    newAllocatedNode = (Node *)((size_t)heapTop - size - sizeof(Node));
+  }
+  return newAllocatedNode;
+}
+
 //First Fit malloc/free
 void *ff_malloc(size_t size) {
   if (allocatedListHead == NULL) {
@@ -45,29 +58,17 @@ void *ff_malloc(size_t size) {
   Node * prev = allocatedListHead;
   Node * newAllocatedNode = NULL;
   while (curr != NULL) {
-    if (((size_t)curr - (size_t)prev->end_address) >= (size + sizeof(*curr))) {
-      newAllocatedNode = (Node *)((size_t)curr - size - sizeof(*curr));
+    if (((size_t)curr - (size_t)prev->end_address) >= (size + sizeof(Node))) {
+      newAllocatedNode = (Node *)((size_t)curr - size - sizeof(Node));
       break;
     }
     prev = curr;
     curr = curr->next;      
   }
   if (newAllocatedNode == NULL) {
-    if (((size_t)heapTop - (size_t)prev->end_address) >= (size + sizeof(*curr))) {
-      newAllocatedNode = heapTop - size - sizeof(*curr);
-    } else {
-      size_t increment = size + sizeof(*curr) - ((size_t)heapTop - (size_t)prev->end_address);
-      heapTop = (void *)((size_t)sbrk(increment) + increment);
-      newAllocatedNode = (Node *)((size_t)heapTop - size - sizeof(*curr));
-      //printf("heapTop = %p\n", heapTop);
-    }
+    newAllocatedNode = initNewAllocatedNode(prev, size);
   }
-  //  if (allocatedListHead->next != NULL)printf("allocatedListHead = %p, heapTop = %p, itself = %p, prev = %p, next = %p\n",allocatedListHead, heapTop, allocatedListHead->next, allocatedListHead->next->prev, allocatedListHead->next->next);
-  //printf("newAllocatedNode = %p, heapTop = %p, itself = %p, prev = %p, next = %p\n",newAllocatedNode, heapTop, prev, prev->prev, prev->next);
   initNode(newAllocatedNode, prev, size);
-  //  printf("prev = %p, next = %p\n", newAllocatedNode->prev, newAllocatedNode->next);
-  //  printf("heapTop = %p\n", heapTop);  
-  //  printf("allocating = %p\n", (void *)newAllocatedNode->start_address);
   return (void *)(newAllocatedNode->start_address);
 }
 
@@ -91,28 +92,19 @@ void *bf_malloc(size_t size) {
   size_t minSize = SIZE_MAX;
   while (curr != NULL) {
     size_t currSize = (size_t)curr - (size_t)prev->end_address;
-    if (currSize >= (size + sizeof(*curr)) && currSize < minSize) {
-	newAllocatedNode = (Node *)((size_t)curr - size - sizeof(*curr));
+    if (currSize >= (size + sizeof(Node)) && currSize < minSize) {
+	newAllocatedNode = (Node *)((size_t)curr - size - sizeof(Node));
 	minSize = currSize;
 	bestFitPrev = prev;
     }
     prev = curr;
     curr = curr->next;      
   }
+  if (bestFitPrev == NULL) bestFitPrev = prev;
   if (newAllocatedNode == NULL) {
-    bestFitPrev = prev;
-    if (((size_t)heapTop - (size_t)prev->end_address) >= (size + sizeof(*curr))) {
-      newAllocatedNode = heapTop - size - sizeof(*curr);
-    } else {
-      size_t increment = size + sizeof(*curr) - ((size_t)heapTop - (size_t)prev->end_address);
-      newAllocatedNode = sbrk(increment);
-      heapTop = (void *)((size_t)newAllocatedNode + increment);
-      //printf("heapTop = %p\n", heapTop);
-    }
+    newAllocatedNode = initNewAllocatedNode(bestFitPrev, size);
   }
   initNode(newAllocatedNode, bestFitPrev, size);
-  //printf("heapTop = %p\n", heapTop);  
-  //printf("start_address = %p\n", (void *)newAllocatedNode->start_address);
   return (void *)(newAllocatedNode->start_address);
 }
 void bf_free(void *ptr) {
@@ -134,5 +126,5 @@ unsigned long get_data_segment_free_space_size() {
     counter++;
     curr = curr->next;
   }
-  return (get_data_segment_size() - counter * sizeof(*curr));
+  return (get_data_segment_size() - counter * sizeof(Node));
 }
