@@ -9,6 +9,7 @@ struct Node_t {
   //  size_t size;
   struct Node_t * next;
   struct Node_t * prev;
+  struct Node_t * next_block;  
 };
 typedef struct Node_t Node;
 //First Fit malloc/free
@@ -23,6 +24,7 @@ void addToLinkedList(Node * prev, Node * toBeAdded);
 void deleteFromLinkedList(Node * toBeDeleted);
 void initNode(Node * node, Node * prev, size_t size);
 void initListHead();
+Node * initNewAllocatedNode(Node * prev, size_t size);
 //global variable to store the freed memory list
 Node * allocatedListHead = NULL;
 void * heapTop = NULL;
