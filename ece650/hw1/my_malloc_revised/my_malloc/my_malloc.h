@@ -5,7 +5,7 @@
 #include <stdint.h>
 struct Node_t {
   struct Node_t * next;
-  struct Node_t * prev;
+  //  struct Node_t * prev;
   //  struct Node_t * next_block;
   size_t size;
 };
@@ -19,8 +19,6 @@ void bf_free(void *ptr);
 unsigned long get_data_segment_size(); //in bytes
 unsigned long get_data_segment_free_space_size(); //in bytes 
 //global variable to store the freed memory list
-Node * allocatedListHead = NULL;
-Node * freedListHead = NULL;
-Node * freedListTail = NULL;
+Node * head = NULL;//free list
 void * heapTop = NULL;
 #endif
