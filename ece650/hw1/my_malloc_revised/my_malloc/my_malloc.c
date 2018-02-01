@@ -1,13 +1,12 @@
 #include "my_malloc.h"
 #include <unistd.h>
-
+#include <assert.h>
 void deleteFromAllocatedList(Node * toBeDeleted) {
-  Node * curr = allocatedListHead;
-  while (curr != NULL && curr->next != toBeDeleted) {
-    curr = curr->next;
+  if (toBeDeleted->prev != NULL) {
+    toBeDeleted->prev->next = toBeDeleted->next;
   }
-  if (curr != NULL) {
-    curr->next = curr->next->next;
+  if (toBeDeleted->next != NULL) {
+    toBeDeleted->next->prev = toBeDeleted->prev;
   }
 }
 
@@ -15,12 +14,14 @@ void initListHead() {
   if (allocatedListHead == NULL) {
     allocatedListHead= sbrk(sizeof(Node));
     allocatedListHead->next = NULL;
+    allocatedListHead->prev = NULL;
     allocatedListHead->size = 0;
     heapTop = allocatedListHead + 1;//exclusive
   }
   if (freedListHead == NULL) {
     freedListHead= sbrk(sizeof(Node));
     freedListHead->next = NULL;
+    freedListHead->prev = NULL;
     freedListHead->size = 0;
     heapTop = freedListHead + 1;//exclusive
     freedListTail = freedListHead;
@@ -30,23 +31,30 @@ void initListHead() {
 void addToFreedList(Node * prev, Node * toBeAdded) {
   if (prev == NULL) {
     Node * curr = freedListHead;
-    while (curr != NULL && (size_t)curr < (size_t)toBeAdded) {
-      prev = curr;
+    while (curr->next != NULL && (size_t)curr->next < (size_t)toBeAdded) {
       curr = curr->next;
     }
+    prev = curr;
   }
   Node * newAddedNode = NULL;
-  if ((size_t)prev + prev->size + sizeof(Node) == (size_t)toBeAdded) {
+  if ((size_t)prev + prev->size + sizeof(Node) == (size_t)toBeAdded) {//combine with the previous node
     prev->size += toBeAdded->size + sizeof(Node);
     newAddedNode = prev;
   } else {
     toBeAdded->next = prev->next;
+    toBeAdded->prev = prev;
+    if (toBeAdded->next != NULL) {
+      toBeAdded->next->prev = toBeAdded;
+    }
     prev->next = toBeAdded;
     newAddedNode = toBeAdded;
   }
-  if ((size_t)newAddedNode + newAddedNode->size + sizeof(Node) == (size_t)newAddedNode->next) {
+  if ((size_t)newAddedNode + newAddedNode->size + sizeof(Node) == (size_t)newAddedNode->next) {//combine with the next node
     newAddedNode->size += newAddedNode->next->size + sizeof(Node);
     newAddedNode->next = newAddedNode->next->next;
+    if (newAddedNode->next != NULL) {
+      newAddedNode->next->prev = newAddedNode;
+    }
   }
   if (freedListTail->next != NULL) {
     freedListTail = freedListTail->next;
@@ -54,14 +62,16 @@ void addToFreedList(Node * prev, Node * toBeAdded) {
 }
 
 void addToAllocatedList(Node * toBeAdded) {
-  Node * curr = allocatedListHead->next;
-  Node * prev = allocatedListHead;
-  while (curr != NULL && (size_t)curr < (size_t)toBeAdded) {
-    prev = curr;
+  Node * curr = allocatedListHead;
+  while (curr->next != NULL && (size_t)curr->next < (size_t)toBeAdded) {
     curr = curr->next;
   }
-  toBeAdded->next = prev->next;
-  prev->next = toBeAdded;
+  toBeAdded->next = curr->next;
+  toBeAdded->prev = curr;
+  if (toBeAdded->next != NULL) {
+    toBeAdded->next->prev = toBeAdded;
+  }
+  curr->next = toBeAdded;
 }
 
 Node * initNewAllocatedNode(Node * newAllocatedNode, size_t size) {
@@ -77,9 +87,8 @@ Node * initNewAllocatedNode(Node * newAllocatedNode, size_t size) {
       Node * potentialFreeNode = heapTop;
       heapTop = (void *)((size_t)sbrk(increment) + increment);
       newAllocatedNode = (Node *)((size_t)heapTop - size - sizeof(Node));
-      potentialFreeNode->next = NULL;
-      potentialFreeNode->size = (size_t)heapTop - (size_t)potentialFreeNode - sizeof(Node) - size;
-      if (potentialFreeNode->size > 0) {
+      if ((size_t)heapTop - (size_t)potentialFreeNode > 2 * sizeof(Node) + size) {
+	potentialFreeNode->size = (size_t)heapTop - (size_t)potentialFreeNode - 2 * sizeof(Node) - size;
 	addToFreedList(freedListTail, potentialFreeNode);
       }
     }
@@ -103,7 +112,7 @@ void *ff_malloc(size_t size) {
   }
   newAllocatedNode = initNewAllocatedNode(newAllocatedNode, size);
   addToAllocatedList(newAllocatedNode);
-  return (void *)(newAllocatedNode + 1);
+  return (void *)((size_t)newAllocatedNode + sizeof(Node));
 }
 
 void ff_free(void *ptr) {

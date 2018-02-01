@@ -100,7 +100,7 @@ int main(int argc, char *argv[])
   printf("Execution Time = %f seconds\n", elapsed_ns / 1e9);
   printf("Fragmentation  = %f\n", (float)data_segment_free_space/(float)data_segment_size);
 
-  for (i=0; i < NUM_ITEMS; i++) {
+  for (i=0; i < 2*NUM_ITEMS/10; i++) {
     FREE(malloc_items[0][i].address);
   } //for i
   return 0;

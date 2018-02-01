@@ -5,6 +5,7 @@
 #include <stdint.h>
 struct Node_t {
   struct Node_t * next;
+  struct Node_t * prev;
   //  struct Node_t * next_block;
   size_t size;
 };
