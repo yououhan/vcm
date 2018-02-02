@@ -42,6 +42,7 @@ Node * allocateNewSpace(Node * prev, size_t size) {
   newAllocatedNode = (Node *)((size_t)heapTop - size - sizeof(Node));
   newFreeNode->size = (size_t)newAllocatedNode - (size_t)newFreeNode - sizeof(Node);
   addToFreedList(prev, newFreeNode);
+  newAllocatedNode->size = size;
   return newAllocatedNode;
 }
 
@@ -52,10 +53,18 @@ void * ff_malloc(size_t size) {
   Node * curr = head->next;
   Node * newAllocatedNode = NULL;
   while (curr != NULL) {
-    if (curr->size >= size + sizeof(Node)) {
-      curr->size -= size + sizeof(Node);
-      newAllocatedNode = (Node *)((size_t)curr + curr->size + sizeof(Node));
-      break;
+    if (curr->size >= size) {
+      if (curr->size >= size + sizeof(Node)) {
+	curr->size -= size + sizeof(Node);
+	newAllocatedNode = (Node *)((size_t)curr + curr->size + sizeof(Node));
+	newAllocatedNode->size = size;
+	break;
+      }
+      else {
+	newAllocatedNode = curr;
+	prev->next = curr->next;
+	break;
+      }
     }
     prev = curr;
     curr = curr->next;
@@ -63,7 +72,6 @@ void * ff_malloc(size_t size) {
   if (newAllocatedNode == NULL) {//if the free list has no data segment that satisfies the needs
     newAllocatedNode = allocateNewSpace(prev, size);
   }
-  newAllocatedNode->size = size;
   return (void *) ((size_t)newAllocatedNode + sizeof(Node));
 }
 
@@ -79,21 +87,34 @@ void *bf_malloc(size_t size) {
   initListHead();
   Node * prev = head;
   Node * curr = head->next;
+  Node * minSizePrev = NULL;
   Node * newAllocatedNode = NULL;
   size_t minSize = SIZE_MAX;
   while (curr != NULL) {
-    if (curr->size >= size + sizeof(Node) && curr->size < minSize) {
-      curr->size -= size + sizeof(Node);
-      newAllocatedNode = (Node *)((size_t)curr + curr->size + sizeof(Node));
+    if (curr->size >= size && curr->size < minSize) {
+      //      curr->size -= size + sizeof(Node);
+      //      newAllocatedNode = (Node *)((size_t)curr + curr->size + sizeof(Node));
+      newAllocatedNode = curr;
+      minSizePrev = prev;
       minSize = curr->size;
+      if (minSize == size) {
+	break;
+      }
     }
     prev = curr;
     curr = curr->next;
   }
   if (newAllocatedNode == NULL) {//if the free list has no data segment that satisfies the needs
     newAllocatedNode = allocateNewSpace(prev, size);
+  } else {
+    if (minSize > size + sizeof(Node)) {
+      newAllocatedNode->size -= size + sizeof(Node);
+      newAllocatedNode = (Node *)((size_t)newAllocatedNode + newAllocatedNode->size + sizeof(Node));
+      newAllocatedNode->size = size;
+    } else {
+      minSizePrev->next = newAllocatedNode->next;
+    }
   }
-  newAllocatedNode->size = size;
   return (void *) ((size_t)newAllocatedNode + sizeof(Node));  
 }
 
